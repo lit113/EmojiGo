@@ -13,6 +13,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     private var isPlankOnScreen = false // 用于跟踪当前是否有木板
+    private var countdownLabel: UILabel!
+    private var countdownTimer: Timer?
+    private var countdownValue: Int = 20
+    private var gameOverlay: UIView?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,7 +39,98 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
         // 首次添加木板
         addDynamicWoodPlank()
+
+        // 添加倒计时
+        setupCountdown()
     }
+
+    private func setupCountdown() {
+        countdownLabel = UILabel(frame: CGRect(x: 20, y: 50, width: 100, height: 50))
+        countdownLabel.text = "20"
+        countdownLabel.font = UIFont.boldSystemFont(ofSize: 24)
+        countdownLabel.textColor = .white
+        countdownLabel.backgroundColor = .black
+        countdownLabel.textAlignment = .center
+        countdownLabel.layer.cornerRadius = 5
+        countdownLabel.layer.masksToBounds = true
+        view.addSubview(countdownLabel)
+
+        startCountdown()
+    }
+
+    private func startCountdown() {
+        countdownValue = 20
+        countdownLabel.text = "20"
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateCountdown), userInfo: nil, repeats: true)
+    }
+
+    @objc private func updateCountdown() {
+        countdownValue -= 1
+        countdownLabel.text = "\(countdownValue)"
+        if countdownValue <= 0 {
+            endGame()
+        }
+    }
+
+    private func endGame() {
+        countdownTimer?.invalidate()
+
+        // 停止场景交互
+        sceneView.scene.rootNode.enumerateChildNodes { node, _ in
+            node.removeAllActions()
+        }
+
+        // 显示结束界面
+        showGameOverlay()
+    }
+
+    private func showGameOverlay() {
+        gameOverlay = UIView(frame: view.bounds)
+        gameOverlay?.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+
+        // 显示分数
+        let scoreLabel = UILabel(frame: CGRect(x: 50, y: 300, width: view.bounds.width - 100, height: 50))
+        scoreLabel.text = "Score: 1234" // 假分数
+        scoreLabel.font = UIFont.boldSystemFont(ofSize: 30)
+        scoreLabel.textColor = .white
+        scoreLabel.textAlignment = .center
+        scoreLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        gameOverlay?.addSubview(scoreLabel)
+
+        
+        // 显示重新开始图片
+        let playAgainImageView = UIImageView(frame: CGRect(x: (view.bounds.width - 200) / 2, y: 550, width: 200, height: 50))
+        playAgainImageView.image = UIImage(named: "play_again")
+        playAgainImageView.contentMode = .scaleAspectFit
+        playAgainImageView.isUserInteractionEnabled = true
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(restartGame))
+        playAgainImageView.addGestureRecognizer(tapGesture)
+        gameOverlay?.addSubview(playAgainImageView)
+
+        view.addSubview(gameOverlay!)
+    }
+
+    @objc private func restartGame() {
+        gameOverlay?.removeFromSuperview()
+        gameOverlay = nil
+
+        // 重置场景
+        sceneView.scene.rootNode.enumerateChildNodes { node, _ in
+            node.removeFromParentNode()
+        }
+        setupInitialFloors()
+
+        // 重置木板状态并添加木板
+        isPlankOnScreen = false
+        DispatchQueue.main.async {
+            self.addDynamicWoodPlank() // 确保立即生成新的木板
+        }
+
+        // 重新开始倒计时
+        startCountdown()
+    }
+
 
     // MARK: 创建地板
     func createFloor(at position: SCNVector3) -> SCNNode {
