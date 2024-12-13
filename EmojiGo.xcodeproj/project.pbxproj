@@ -35,16 +35,6 @@
 			path = EmojiGo;
 			sourceTree = "<group>";
 		};
-		45CF88682D095BDD00959EE3 /* EmojiGoTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = EmojiGoTests;
-			sourceTree = "<group>";
-		};
-		45CF88722D095BDD00959EE3 /* EmojiGoUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = EmojiGoUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +66,6 @@
 			isa = PBXGroup;
 			children = (
 				45CF88522D095BDA00959EE3 /* EmojiGo */,
-				45CF88682D095BDD00959EE3 /* EmojiGoTests */,
-				45CF88722D095BDD00959EE3 /* EmojiGoUITests */,
 				45CF88512D095BDA00959EE3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,9 +118,6 @@
 			dependencies = (
 				45CF88672D095BDD00959EE3 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				45CF88682D095BDD00959EE3 /* EmojiGoTests */,
-			);
 			name = EmojiGoTests;
 			packageProductDependencies = (
 			);
@@ -152,9 +137,6 @@
 			);
 			dependencies = (
 				45CF88712D095BDD00959EE3 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				45CF88722D095BDD00959EE3 /* EmojiGoUITests */,
 			);
 			name = EmojiGoUITests;
 			packageProductDependencies = (
