@@ -54,17 +54,24 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     private func setupEmotionModel() {
         do {
+            // 加载 CoreML 模型
             emotionModel = try VNCoreMLModel(for: EmojiChallengeClassfier().model)
-            emotionRequest = VNCoreMLRequest(model: emotionModel) { [weak self] request, error in
+            
+            // 创建 VNCoreMLRequest 使用新的构造器
+            emotionRequest = VNCoreMLRequest(model: emotionModel, completionHandler: { [weak self] request, error in
+                if let error = error {
+                    print("Error during Vision request: \(error.localizedDescription)")
+                    return
+                }
                 guard let results = request.results as? [VNClassificationObservation], let topResult = results.first else {
                     print("No results from model")
                     return
                 }
 
                 DispatchQueue.main.async {
-                    self?.gameView.updateDetectedEmotionLabel(with: topResult.identifier)
+                    self?.handleDetectedEmotion(topResult.identifier)
                 }
-            }
+            })
         } catch {
             fatalError("Failed to load CoreML model: \(error)")
         }
@@ -88,6 +95,29 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             self?.analyzeCurrentFrame()
         }
     }
+
+    private func handleDetectedEmotion(_ detectedEmotion: String) {
+        gameView.updateDetectedEmotionLabel(with: detectedEmotion)
+
+        // 检查是否与当前木板的表情匹配，并且尚未计分
+        if let currentPlankEmoji = gameModel.currentPlankEmoji,
+           currentPlankEmoji == detectedEmotion,
+           !gameModel.hasScoredOnCurrentPlank {
+            
+            gameModel.matchingTime += 0.5 // 增加匹配时间
+
+            // 如果累计匹配时间超过 1 秒，则计分
+            if gameModel.matchingTime >= 1.0 {
+                gameModel.score += 100
+                gameModel.matchingTime = 0 // 重置匹配时间
+                gameModel.hasScoredOnCurrentPlank = true // 标记当前木板已得分
+            }
+        } else {
+            // 如果不匹配，重置匹配时间
+            gameModel.matchingTime = 0
+        }
+    }
+
 
     private func startCountdown() {
         gameModel.countdownValue = 20
@@ -164,11 +194,16 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             emojiNode.position = SCNVector3(0, 0, 0.03)
             emojiNode.eulerAngles = SCNVector3(0, 0, 0)
             plankNode.addChildNode(emojiNode)
+
+            // 设置当前木板表情
+            gameModel.currentPlankEmoji = randomEmoji
+            gameModel.hasScoredOnCurrentPlank = false // 重置得分标志
         }
 
         sceneView.scene.rootNode.addChildNode(plankNode)
         gameModel.isPlankOnScreen = true
     }
+
 
     func slideFloors() {
         sceneView.scene.rootNode.enumerateChildNodes { (node, _) in
@@ -206,4 +241,3 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         loadNewFloorsIfNeeded()
     }
 }
-
