@@ -5,20 +5,15 @@
 //  Created by Tong Li on 12/13/24.
 //
 
-//
-//  ViewController.swift
-//  EmojiGo
-//
-//  Created by Tong Li on 12/10/24.
-//
-
 import UIKit
 import SceneKit
 import ARKit
+import Vision
 
 // MARK: - GameView
 class GameView {
     private(set) var countdownLabel: UILabel
+    private(set) var detectedEmotionLabel: UILabel
     private(set) var gameOverlay: UIView?
 
     init(frame: CGRect) {
@@ -30,14 +25,37 @@ class GameView {
         countdownLabel.textAlignment = .center
         countdownLabel.layer.cornerRadius = 5
         countdownLabel.layer.masksToBounds = true
+
+        detectedEmotionLabel = UILabel(frame: CGRect(x: frame.width - 120, y: 50, width: 100, height: 50))
+        detectedEmotionLabel.font = UIFont.boldSystemFont(ofSize: 16)
+        detectedEmotionLabel.textColor = .white
+        detectedEmotionLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        detectedEmotionLabel.textAlignment = .center
+        detectedEmotionLabel.layer.cornerRadius = 5
+        detectedEmotionLabel.layer.masksToBounds = true
     }
 
-    func setupCountdown(in view: UIView) {
+    func setupUI(in view: UIView) {
         view.addSubview(countdownLabel)
+        view.addSubview(detectedEmotionLabel)
     }
 
     func updateCountdownLabel(with value: Int) {
         countdownLabel.text = "\(value)"
+    }
+
+    func updateDetectedEmotionLabel(with emotion: String) {
+        if let emojiImage = UIImage(named: emotion) {
+            let emojiImageView = UIImageView(image: emojiImage)
+            emojiImageView.frame = detectedEmotionLabel.bounds
+            emojiImageView.contentMode = .scaleAspectFit
+
+            // Remove existing subviews
+            detectedEmotionLabel.subviews.forEach { $0.removeFromSuperview() }
+            detectedEmotionLabel.addSubview(emojiImageView)
+        } else {
+            detectedEmotionLabel.text = emotion
+        }
     }
 
     func showGameOverlay(in view: UIView, score: Int, restartHandler: @escaping () -> Void) {

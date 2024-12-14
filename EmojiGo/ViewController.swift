@@ -8,13 +8,18 @@
 import UIKit
 import SceneKit
 import ARKit
+import Vision
 
+// MARK: - ViewController
 class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     private var gameModel = GameModel()
     private var gameView: GameView!
     private var countdownTimer: Timer?
+
+    private var emotionModel: VNCoreMLModel!
+    private var emotionRequest: VNCoreMLRequest!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,9 +36,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             print("前置摄像头不支持人脸追踪功能。")
         }
 
-        // 初始化视图
+        // 初始化模型和视图
+        setupEmotionModel()
         gameView = GameView(frame: view.bounds)
-        gameView.setupCountdown(in: view)
+        gameView.setupUI(in: view)
 
         // 初始化地板和木板
         setupInitialFloors()
@@ -41,6 +47,46 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
         // 开始倒计时
         startCountdown()
+
+        // 开始表情检测
+        startFaceDetection()
+    }
+
+    private func setupEmotionModel() {
+        do {
+            emotionModel = try VNCoreMLModel(for: EmojiChallengeClassfier().model)
+            emotionRequest = VNCoreMLRequest(model: emotionModel) { [weak self] request, error in
+                guard let results = request.results as? [VNClassificationObservation], let topResult = results.first else {
+                    print("No results from model")
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    self?.gameView.updateDetectedEmotionLabel(with: topResult.identifier)
+                }
+            }
+        } catch {
+            fatalError("Failed to load CoreML model: \(error)")
+        }
+    }
+
+    private func analyzeCurrentFrame() {
+        guard let currentFrame = sceneView.session.currentFrame else { return }
+
+        let pixelBuffer = currentFrame.capturedImage
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+
+        do {
+            try handler.perform([emotionRequest])
+        } catch {
+            print("Failed to perform Vision request: \(error)")
+        }
+    }
+
+    private func startFaceDetection() {
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.analyzeCurrentFrame()
+        }
     }
 
     private func startCountdown() {
@@ -60,7 +106,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     private func endGame() {
         countdownTimer?.invalidate()
-        gameView.showGameOverlay(in: view, score: 1234) { [weak self] in
+        gameView.showGameOverlay(in: view, score: gameModel.score) { [weak self] in
             self?.restartGame()
         }
     }
@@ -109,7 +155,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         plankNode.position = SCNVector3(0, -0.35, farthestZ)
         plankNode.name = "plank"
 
-        let emojiTextures = ["happy", "neutral", "angry"]
+        let emojiTextures = ["anger", "contempt", "fear", "happy", "surprise"]
         if let randomEmoji = emojiTextures.randomElement(), let emojiImage = UIImage(named: randomEmoji) {
             let emojiPlane = SCNPlane(width: 0.3, height: 0.2)
             emojiPlane.firstMaterial?.diffuse.contents = emojiImage
@@ -160,3 +206,4 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         loadNewFloorsIfNeeded()
     }
 }
+
