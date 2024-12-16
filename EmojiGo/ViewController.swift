@@ -20,6 +20,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     private var emotionModel: VNCoreMLModel!
     private var emotionRequest: VNCoreMLRequest!
+    private let imagePreprocessor = ImagePreprocessor()
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -79,19 +81,23 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     private func analyzeCurrentFrame() {
         guard let currentFrame = sceneView.session.currentFrame else { return }
-
-        let pixelBuffer = currentFrame.capturedImage
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
-
-        do {
-            try handler.perform([emotionRequest])
-        } catch {
-            print("Failed to perform Vision request: \(error)")
+        
+        if let preprocessedBuffer = imagePreprocessor.process(pixelBuffer: currentFrame.capturedImage) {
+            let handler = VNImageRequestHandler(cvPixelBuffer: preprocessedBuffer, options: [:])
+            do {
+                try handler.perform([emotionRequest])
+            } catch {
+                print("Failed to perform Vision request: \(error)")
+            }
+        } else {
+            print("Warning: Failed to preprocess frame for emotion detection.")
         }
+
     }
 
+
     private func startFaceDetection() {
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.analyzeCurrentFrame()
         }
     }
@@ -185,7 +191,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         plankNode.position = SCNVector3(0, -0.35, farthestZ)
         plankNode.name = "plank"
 
-        let emojiTextures = ["anger", "contempt", "fear", "happy", "surprise"]
+        let emojiTextures = ["anger", "surprise", "happy"]
         if let randomEmoji = emojiTextures.randomElement(), let emojiImage = UIImage(named: randomEmoji) {
             let emojiPlane = SCNPlane(width: 0.3, height: 0.2)
             emojiPlane.firstMaterial?.diffuse.contents = emojiImage
