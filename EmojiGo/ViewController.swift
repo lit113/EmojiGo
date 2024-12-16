@@ -9,6 +9,8 @@ import UIKit
 import SceneKit
 import ARKit
 import Vision
+import CoreVideo
+import AVFoundation
 
 // MARK: - ViewController
 class ViewController: UIViewController, ARSCNViewDelegate {
@@ -21,6 +23,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     private var emotionModel: VNCoreMLModel!
     private var emotionRequest: VNCoreMLRequest!
     private let imagePreprocessor = ImagePreprocessor()
+    private var audioPlayer: AVAudioPlayer?
 
 
     override func viewDidLoad() {
@@ -101,22 +104,56 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             self?.analyzeCurrentFrame()
         }
     }
+    
+    // 通用音效播放方法
+    private func playSound(resourceName: String) {
+        guard let soundURL = Bundle.main.url(forResource: resourceName, withExtension: "wav") else {
+            print("Sound file \(resourceName) not found.")
+            return
+        }
+        
+        // 设置 AudioSession
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to set audio session: \(error.localizedDescription)")
+        }
+        
+        // 播放音效
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
+            audioPlayer?.play()
+        } catch {
+            print("Failed to play sound: \(error.localizedDescription)")
+        }
+    }
+    
+    func playSuccessSound() {
+        playSound(resourceName: "success")
+    }
+
+    // 播放失败音效
+    func playFailureSound() {
+        playSound(resourceName: "failure")
+    }
 
     private func handleDetectedEmotion(_ detectedEmotion: String) {
         gameView.updateDetectedEmotionLabel(with: detectedEmotion)
 
-        // 检查是否与当前木板的表情匹配，并且尚未计分
+        // 检查是否与当前木板的表情匹配
         if let currentPlankEmoji = gameModel.currentPlankEmoji,
            currentPlankEmoji == detectedEmotion,
            !gameModel.hasScoredOnCurrentPlank {
-            
+
             gameModel.matchingTime += 0.5 // 增加匹配时间
 
-            // 如果累计匹配时间超过 1 秒，则计分
+            // 如果累计匹配时间超过1秒，则计分
             if gameModel.matchingTime >= 1.0 {
                 gameModel.score += 100
                 gameModel.matchingTime = 0 // 重置匹配时间
                 gameModel.hasScoredOnCurrentPlank = true // 标记当前木板已得分
+                playSuccessSound()
             }
         } else {
             // 如果不匹配，重置匹配时间
