@@ -100,7 +100,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
 
     private func startFaceDetection() {
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
             self?.analyzeCurrentFrame()
         }
     }
@@ -163,7 +163,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
 
     private func startCountdown() {
-        gameModel.countdownValue = 20
+        gameModel.countdownValue = 30
         gameView.updateCountdownLabel(with: gameModel.countdownValue)
         countdownTimer?.invalidate()
         countdownTimer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateCountdown), userInfo: nil, repeats: true)

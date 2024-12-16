@@ -9,7 +9,7 @@ import Foundation
 
 class GameModel {
     var isPlankOnScreen = false
-    var countdownValue = 20
+    var countdownValue = 30
     var score = 0 // 游戏分数
 
     var matchingTime: TimeInterval = 0 // 匹配时间累计
@@ -18,7 +18,7 @@ class GameModel {
 
     func reset() {
         isPlankOnScreen = false
-        countdownValue = 20
+        countdownValue = 30
         score = 0
         matchingTime = 0
         currentPlankEmoji = nil
